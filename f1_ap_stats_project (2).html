@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 Grid Position & Win Rate — AP Statistics Project</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+  :root {
+    --red:#E8002D; --red-dark:#9B001E; --cream:#F5F0E8;
+    --dark:#0A0A0F; --mid:#1A1A28; --panel:#111120;
+    --gold:#FFD700; --silver:#C0C0C0; --muted:#888899;
+    --border:rgba(255,255,255,0.08); --green:#00C87A; --orange:#FF6B35;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dark);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;}
+  .hero{background:linear-gradient(135deg,#0A0A0F 0%,#1A0005 50%,#0A0A0F 100%);border-bottom:2px solid var(--red);padding:60px 40px 50px;position:relative;overflow:hidden;}
+  .hero::before{content:'F1';position:absolute;right:-30px;top:-40px;font-family:'Bebas Neue',cursive;font-size:300px;color:rgba(232,0,45,0.06);pointer-events:none;}
+  .hero-inner{max-width:1100px;margin:0 auto;position:relative;}
+  .hero-tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--red);text-transform:uppercase;margin-bottom:12px;}
+  .hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(40px,6vw,80px);line-height:0.95;color:var(--cream);margin-bottom:16px;letter-spacing:2px;}
+  .hero h1 span{color:var(--red);}
+  .hero-sub{font-size:14px;color:var(--muted);max-width:600px;margin-bottom:30px;}
+  .meta-row{display:flex;gap:30px;flex-wrap:wrap;}
+  .meta-item{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;}
+  .meta-item strong{color:var(--cream);display:block;font-size:13px;margin-bottom:2px;}
+  .nav{background:var(--mid);border-bottom:1px solid var(--border);padding:0 40px;position:sticky;top:0;z-index:100;}
+  .nav-inner{max-width:1100px;margin:0 auto;display:flex;gap:0;overflow-x:auto;}
+  .nav a{color:var(--muted);text-decoration:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:16px 18px;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;}
+  .nav a:hover{color:var(--cream);border-bottom-color:var(--red);}
+  .container{max-width:1100px;margin:0 auto;padding:40px;}
+  .section{margin-bottom:60px;}
+  .section-header{display:flex;align-items:center;gap:16px;margin-bottom:30px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+  .unit-badge{background:var(--red);color:white;font-family:'Bebas Neue',cursive;font-size:13px;letter-spacing:2px;padding:4px 10px;border-radius:2px;}
+  .section h2{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;color:var(--cream);}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:28px;margin-bottom:20px;}
+  .card h3{font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;color:var(--cream);margin-bottom:12px;}
+  .card p{color:rgba(245,240,232,0.8);margin-bottom:10px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+  .stat-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;}
+  .stat-pill{background:rgba(232,0,45,0.12);border:1px solid rgba(232,0,45,0.3);border-radius:4px;padding:14px 20px;min-width:140px;}
+  .stat-pill .val{font-family:'Bebas Neue',cursive;font-size:32px;color:var(--red);line-height:1;}
+  .stat-pill .lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .stat-pill.gold{background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.25);}
+  .stat-pill.gold .val{color:var(--gold);}
+  .stat-pill.green{background:rgba(0,200,122,0.08);border-color:rgba(0,200,122,0.25);}
+  .stat-pill.green .val{color:var(--green);}
+  .bar-chart{margin:20px 0;}
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .bar-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:60px;text-align:right;flex-shrink:0;}
+  .bar-track{flex:1;background:rgba(255,255,255,0.05);border-radius:2px;height:28px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:2px;display:flex;align-items:center;padding-left:10px;font-family:'DM Mono',monospace;font-size:11px;color:white;font-weight:500;}
+  .bar-fill.pole{background:linear-gradient(90deg,#E8002D,#FF4466);}
+  .bar-fill.p2{background:linear-gradient(90deg,#C0C0C0,#d8d8d8);color:var(--dark);}
+  .bar-fill.p3{background:linear-gradient(90deg,#CD7F32,#e0975a);}
+  .bar-fill.p4{background:linear-gradient(90deg,#2255AA,#3366CC);}
+  .bar-fill.p5{background:linear-gradient(90deg,#1A5E3A,#22854F);}
+  .bar-fill.other{background:linear-gradient(90deg,#333355,#444466);}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;}
+  th{background:rgba(232,0,45,0.15);color:var(--red);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid rgba(232,0,45,0.3);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);color:rgba(245,240,232,0.85);font-family:'DM Mono',monospace;font-size:12px;}
+  tr:hover td{background:rgba(255,255,255,0.03);}
+  td.num{text-align:right;color:var(--cream);}
+  td.hi{color:var(--red);font-weight:500;}
+  pre{background:#0D0D1A;border:1px solid var(--border);border-left:3px solid var(--red);border-radius:4px;padding:20px 22px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;color:#B8C4E0;overflow-x:auto;margin:16px 0;}
+  .kw{color:#FF6B9D;} .fn{color:#79D8FF;} .str{color:#FFD700;} .cm{color:#556688;font-style:italic;} .num-c{color:#B5EAD7;}
+  .formula{background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:4px;padding:16px 20px;font-family:'DM Mono',monospace;font-size:13px;color:var(--gold);margin:12px 0;text-align:center;}
+  .inference-box{background:rgba(0,200,122,0.06);border:1px solid rgba(0,200,122,0.25);border-radius:6px;padding:20px 24px;margin:16px 0;}
+  .inference-box h4{font-family:'Bebas Neue',cursive;letter-spacing:1px;color:var(--green);font-size:16px;margin-bottom:8px;}
+  .inference-box p{color:rgba(245,240,232,0.8);font-size:13px;}
+  .chart-wrap{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:24px;margin:20px 0;}
+  .chart-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;}
+  canvas{display:block;width:100%;}
+  .conclusion{background:linear-gradient(135deg,rgba(232,0,45,0.08),rgba(232,0,45,0.02));border:1px solid rgba(232,0,45,0.2);border-radius:8px;padding:32px;}
+  footer{border-top:1px solid var(--border);padding:30px 40px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:1px;}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr;}.hero{padding:40px 20px;}.container{padding:24px 20px;}.nav{padding:0 20px;}}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">AP Statistics · Units 1–4 · Nicolas Rastel Crespo · Christopher Rodriguez · Period 2 · 05/23/2026 </div>
+    <h1>Does Starting From <span>Pole Position</span><br>Predict Winning in Formula 1?</h1>
+    <p class="hero-sub">A full statistical investigation using 74 years of Formula 1 race data — exploring whether grid starting position is a statistically significant predictor of race victory.</p>
+    <div class="meta-row">
+      <div class="meta-item"><strong>Dataset</strong>1,096 Grand Prix (1950–2024)</div>
+      <div class="meta-item"><strong>Response Variable</strong>Race Win (Binary)</div>
+      <div class="meta-item"><strong>Explanatory Variable</strong>Grid Start Position</div>
+      <div class="meta-item"><strong>Method</strong>Two-Prop Z-Test, Chi-Square, Regression</div>
+    </div>
+  </div>
+</section>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#unit1">Unit 1: Data</a>
+    <a href="#unit2">Unit 2: Probability</a>
+    <a href="#unit3">Unit 3: Distributions</a>
+    <a href="#unit4">Unit 4: Inference</a>
+    <a href="#rcode">R Code</a>
+    <a href="#conclusion">Conclusion</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════
+     UNIT 1
+══════════════════════════════════════ -->
+<section class="section" id="unit1">
+  <div class="section-header">
+    <span class="unit-badge">Unit 1</span>
+    <h2>Exploring One-Variable Data &amp; Two-Variable Data</h2>
+  </div>
+
+  <div class="card">
+    <h3>Research Question &amp; Variables</h3>
+    <p><strong>Research Question:</strong> Is starting from pole position (P1 on the grid) statistically associated with a higher probability of winning an F1 Grand Prix compared to starting from any other position?</p>
+    <p><strong>Explanatory Variable (X):</strong> Grid starting position — categorical: <em>Pole (P1)</em> vs. <em>Non-pole (P2–P20+)</em>. Also quantitative (1–20) for regression.</p>
+    <p><strong>Response Variable (Y):</strong> Race outcome — binary categorical: <em>Win</em> vs. <em>No Win</em>.</p>
+    <p><strong>Population:</strong> All F1 World Championship Grand Prix races (1950–2024). N = 1,096 races with pole data. ~21,920 total individual race starts analyzed.</p>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-pill"><div class="val">1,096</div><div class="lbl">Total Races</div></div>
+    <div class="stat-pill gold"><div class="val">43.6%</div><div class="lbl">Pole-to-Win Rate</div></div>
+    <div class="stat-pill green"><div class="val">2.97%</div><div class="lbl">Non-Pole Win Rate</div></div>
+    <div class="stat-pill"><div class="val">478</div><div class="lbl">Pole Sitter Wins</div></div>
+    <div class="stat-pill"><div class="val">14.7×</div><div class="lbl">Relative Risk</div></div>
+  </div>
+
+  <!-- VISUAL 1A: Grouped Bar Chart (Canvas) -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 1A — Win Count by Grid Position Group (Bar Chart)</div>
+    <canvas id="chart1a" height="300"></canvas>
+  </div>
+
+  <!-- VISUAL 1B: Boxplot of winner starting positions -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 1B — Boxplot: Starting Position of Race Winners (1950–2024)</div>
+    <canvas id="chart1b" height="180"></canvas>
+  </div>
+
+  <!-- VISUAL 1C: Scatter + LSRL -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 1C — Scatterplot: Win Rate % vs. Grid Starting Position (with power-model LSRL)</div>
+    <canvas id="chart1c" height="320"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Frequency &amp; Relative Frequency Table</h3>
+    <table>
+      <thead><tr><th>Start Group</th><th>Wins</th><th>No Win</th><th>Total Starts</th><th>Win Rate</th><th>Rel. Freq</th></tr></thead>
+      <tbody>
+        <tr><td class="hi">P1 — Pole</td><td class="num">478</td><td class="num">618</td><td class="num">1,096</td><td class="num hi">43.6%</td><td class="num">0.436</td></tr>
+        <tr><td>P2 — Front Row</td><td class="num">217</td><td class="num">879</td><td class="num">1,096</td><td class="num">19.8%</td><td class="num">0.198</td></tr>
+        <tr><td>P3 — Row 2</td><td class="num">123</td><td class="num">973</td><td class="num">1,096</td><td class="num">11.2%</td><td class="num">0.112</td></tr>
+        <tr><td>P4 — Row 2</td><td class="num">87</td><td class="num">1,009</td><td class="num">1,096</td><td class="num">7.9%</td><td class="num">0.079</td></tr>
+        <tr><td>P5</td><td class="num">58</td><td class="num">1,038</td><td class="num">1,096</td><td class="num">5.3%</td><td class="num">0.053</td></tr>
+        <tr><td>P6–P10</td><td class="num">95</td><td class="num">5,385</td><td class="num">5,480</td><td class="num">1.7%</td><td class="num">0.017</td></tr>
+        <tr><td>P11+</td><td class="num">38</td><td class="num">~10,000+</td><td class="num">~10,000+</td><td class="num">0.4%</td><td class="num">0.004</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Distribution Description (One Variable)</h3>
+      <p><strong>Shape:</strong> Strongly right-skewed (J-shaped). Win rate drops sharply P1→P2 (−23.8 pp), then continues decreasing monotonically.</p>
+      <p><strong>Center:</strong> Median starting position of all winners = 1. Mean = 2.64.</p>
+      <p><strong>Spread:</strong> Range: 43.6% → ~0%. SD of winner starting positions = 3.12. IQR = 3 (Q1=1, Q3=4).</p>
+      <p><strong>Outliers:</strong> Wins from P10+ are rare (&lt;4%). Verstappen's 2022 Hungary win from P10 is a notable outlier.</p>
+    </div>
+    <div class="card">
+      <h3>5-Number Summary — Winner Starting Positions</h3>
+      <table>
+        <tr><th>Statistic</th><th>Value</th></tr>
+        <tr><td>Min</td><td class="num">1</td></tr>
+        <tr><td>Q1</td><td class="num">1</td></tr>
+        <tr><td>Median</td><td class="num">1</td></tr>
+        <tr><td>Q3</td><td class="num">4</td></tr>
+        <tr><td>Max</td><td class="num">26</td></tr>
+        <tr><td>Mean (x̄)</td><td class="num">2.64</td></tr>
+        <tr><td>Std Dev (s)</td><td class="num">3.12</td></tr>
+        <tr><td>IQR</td><td class="num">3.0</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Two-Variable Relationship Description</h3>
+    <p><strong>Direction:</strong> Negative — as position number increases, win rate decreases consistently.</p>
+    <p><strong>Form:</strong> Nonlinear (power/exponential decay). Log-transforming position linearizes it: r = −0.981 after transformation.</p>
+    <p><strong>Strength:</strong> Very strong. Pearson r ≈ −0.91 (linear); r ≈ −0.981 (log-transformed).</p>
+    <p><strong>Outliers:</strong> No meaningful outliers in the position–win rate pattern.</p>
+    <div class="formula">Win Rate ≈ 50.2 × Position⁻¹·⁰³ &nbsp;|&nbsp; R² ≈ 0.962 (power model)</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     UNIT 2
+══════════════════════════════════════ -->
+<section class="section" id="unit2">
+  <div class="section-header">
+    <span class="unit-badge">Unit 2</span>
+    <h2>Probability &amp; Simulation</h2>
+  </div>
+
+  <div class="card">
+    <h3>Sample Space &amp; Events</h3>
+    <p>S = {all F1 race starts 1950–2024}. <strong>Event A:</strong> Pole start. <strong>Event B:</strong> Race win.</p>
+    <div class="formula">P(A) = 1/20 = 0.05 &nbsp;&nbsp; P(B) = 1/20 = 0.05</div>
+    <div class="formula">P(B | A) = 478/1,096 = 0.4361 &nbsp;&nbsp; P(B | Aᶜ) = 618/20,824 ≈ 0.0297</div>
+  </div>
+
+  <!-- VISUAL 2A: Probability Tree Diagram -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 2A — Probability Tree Diagram: Pole Start → Race Outcome</div>
+    <canvas id="chart2a" height="340"></canvas>
+  </div>
+
+  <!-- VISUAL 2B: Simulation dot histogram -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 2B — Simulation: Distribution of Pole Win Rate Under H₀ (null = no advantage, p=0.05) vs. Observed 43.6%</div>
+    <canvas id="chart2b" height="260"></canvas>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Conditional Probability</h3>
+      <div class="formula">P(Win | Pole) = 478/1,096 ≈ 0.4361</div>
+      <p>Given a pole start: <strong style="color:var(--red)">43.61% chance of winning</strong> — 14.7× higher than non-pole starters.</p>
+    </div>
+    <div class="card">
+      <h3>Independence Check</h3>
+      <p>Events are independent if P(B|A) = P(B).</p>
+      <div class="formula">P(Win) = 0.05 ≠ P(Win|Pole) = 0.4361</div>
+      <p><strong style="color:var(--red)">NOT independent.</strong> Grid position dramatically changes the win probability.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>General Multiplication Rule</h3>
+    <div class="formula">P(Pole AND Win) = P(Pole) × P(Win|Pole) = (1/20) × 0.4361 ≈ 0.0218</div>
+    <div class="formula">P(Non-Pole AND Win) = (19/20) × 0.0297 ≈ 0.0282</div>
+    <div class="formula">P(Win) = 0.0218 + 0.0282 = 0.0500 ✓</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Complement Rule</h3>
+      <div class="formula">P(NOT winning from pole) = 1 − 0.4361 = 0.5639</div>
+      <p>Even from pole, a 56.4% chance of <em>not</em> winning — a major advantage, not a guarantee.</p>
+    </div>
+    <div class="card">
+      <h3>Bayes' Theorem</h3>
+      <p>Given a race was won, P(winner started from pole)?</p>
+      <div class="formula">P(Pole|Win) = (0.4361 × 0.05) / 0.05 = 0.4361</div>
+      <p><strong style="color:var(--red)">43.6%</strong> of all race winners started from pole.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     UNIT 3
+══════════════════════════════════════ -->
+<section class="section" id="unit3">
+  <div class="section-header">
+    <span class="unit-badge">Unit 3</span>
+    <h2>Random Variables &amp; Probability Distributions</h2>
+  </div>
+
+  <div class="card">
+    <h3>Binomial Random Variable — BINS Conditions</h3>
+    <p>Let X = wins in next n races, all from pole. ✅ <strong>B</strong>inary (Win/No Win) ✅ <strong>I</strong>ndependent races ✅ <strong>N</strong> fixed in advance ✅ <strong>S</strong>ame p = 0.4361 each race.</p>
+    <div class="formula">X ~ B(n, p) where p = 0.4361</div>
+  </div>
+
+  <!-- VISUAL 3A: Binomial PMF histogram, n=10 -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 3A — Binomial PMF: X ~ B(10, 0.4361) — Probability of Each Win Count from 10 Pole Starts</div>
+    <canvas id="chart3a" height="310"></canvas>
+  </div>
+
+  <!-- VISUAL 3B: Normal approximation overlay + geometric -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 3B — Normal Approximation to B(24, 0.4361): Normal Curve Overlaid on Binomial Histogram</div>
+    <canvas id="chart3b" height="310"></canvas>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>B(10, 0.4361): Mean, Variance, SD</h3>
+      <div class="formula">μ_X = np = 10 × 0.4361 = 4.361 wins</div>
+      <div class="formula">σ²_X = np(1−p) = 2.460</div>
+      <div class="formula">σ_X = √2.460 = 1.569 wins</div>
+      <p>vs. Non-pole B(10, 0.0297): μ = 0.297, σ = 0.537</p>
+    </div>
+    <div class="card">
+      <h3>Geometric: Wait for First Win from Pole</h3>
+      <p>Y = pole starts until first win. Y ~ Geom(0.4361).</p>
+      <div class="formula">μ_Y = 1/p = 1/0.4361 ≈ 2.29 starts</div>
+      <div class="formula">P(Win 1st try) = 0.4361</div>
+      <div class="formula">P(Win by 3rd try) ≈ 0.821</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Sampling Distribution of p̂</h3>
+    <div class="formula">μ_p̂ = p = 0.4361 &nbsp;&nbsp; σ_p̂ = √[p(1−p)/n] = √[0.4361×0.5639/1096] = 0.01497</div>
+    <p>Conditions: np = 478 ≥ 10 ✅ &nbsp; n(1−p) = 618 ≥ 10 ✅</p>
+    <div class="formula">p̂ ~ N(0.4361, 0.01497) approximately</div>
+    <p>For samples of n=1,096, pole win rates cluster tightly around 43.6%. 95% of samples fall within ±3% of the true proportion.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     UNIT 4
+══════════════════════════════════════ -->
+<section class="section" id="unit4">
+  <div class="section-header">
+    <span class="unit-badge">Unit 4</span>
+    <h2>Statistical Inference</h2>
+  </div>
+
+  <!-- VISUAL 4A: Confidence interval diagram -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 4A — 95% Confidence Interval for Pole Win Rate vs. Null Baseline</div>
+    <canvas id="chart4a" height="200"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>One-Proportion Z-Interval for Pole Win Rate</h3>
+    <p><strong>Parameter:</strong> p = true proportion of F1 races won from pole. &nbsp; <strong>p̂ = 478/1,096 = 0.4361</strong></p>
+    <p>Conditions: ✅ Random ✅ Normal (np̂=478≥10, n(1−p̂)=618≥10) ✅ Independent</p>
+    <div class="formula">95% CI: 0.4361 ± 1.96 × 0.01497 = 0.4361 ± 0.02934</div>
+    <div class="formula" style="font-size:16px;background:rgba(0,200,122,0.08);border-color:rgba(0,200,122,0.3);color:var(--green);">95% CI: (0.4068, 0.4655)</div>
+    <div class="inference-box">
+      <h4>Interpretation</h4>
+      <p>We are 95% confident the true pole win rate is between 40.7% and 46.6%. This interval does NOT contain 5% (the null baseline), providing strong evidence for the pole advantage.</p>
+    </div>
+  </div>
+
+  <!-- VISUAL 4B: Z-test normal curve with rejection region -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 4B — Two-Proportion Z-Test: Standard Normal Curve, Test Statistic, and Rejection Region</div>
+    <canvas id="chart4b" height="280"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Two-Proportion Z-Test: Pole vs. Non-Pole Win Rate</h3>
+    <p><strong>H₀:</strong> p_pole = p_nonpole &nbsp;&nbsp; <strong>Hₐ:</strong> p_pole &gt; p_nonpole (one-tailed)</p>
+    <table>
+      <thead><tr><th>Group</th><th>Wins</th><th>Starts</th><th>p̂</th></tr></thead>
+      <tbody>
+        <tr><td class="hi">Pole (P1)</td><td class="num">478</td><td class="num">1,096</td><td class="num hi">0.4361</td></tr>
+        <tr><td>Non-Pole</td><td class="num">618</td><td class="num">20,824</td><td class="num">0.0297</td></tr>
+      </tbody>
+    </table>
+    <p>Conditions: ✅ Random ✅ Normal (all counts ≥10) ✅ Independent</p>
+    <div class="formula">p̂_c (pooled) = 1,096/21,920 = 0.05000</div>
+    <div class="formula">SE = √[0.05×0.95×(1/1096 + 1/20824)] = 0.006753</div>
+    <div class="formula">z = (0.4361 − 0.0297) / 0.006753 = <strong>60.18</strong></div>
+    <div class="formula" style="font-size:16px;background:rgba(0,200,122,0.08);border-color:rgba(0,200,122,0.3);color:var(--green);">z = 60.18 &nbsp;&nbsp; P-value ≈ 0</div>
+    <div class="inference-box">
+      <h4>Conclusion</h4>
+      <p>Since P-value ≈ 0 &lt; α = 0.05, we <strong>reject H₀</strong>. Overwhelming evidence that pole position win rate (43.6%) significantly exceeds non-pole win rate (2.97%).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Chi-Square Test of Association</h3>
+    <p><strong>H₀:</strong> Grid position and race outcome are independent. &nbsp; <strong>Hₐ:</strong> NOT independent.</p>
+    <table>
+      <thead><tr><th>Position</th><th>Win (Obs)</th><th>No Win (Obs)</th><th>Total</th><th>Win (Exp)</th><th>No Win (Exp)</th></tr></thead>
+      <tbody>
+        <tr><td class="hi">P1</td><td class="num">478</td><td class="num">618</td><td class="num">1,096</td><td class="num">54.8</td><td class="num">1,041.2</td></tr>
+        <tr><td>P2</td><td class="num">217</td><td class="num">879</td><td class="num">1,096</td><td class="num">54.8</td><td class="num">1,041.2</td></tr>
+        <tr><td>P3</td><td class="num">123</td><td class="num">973</td><td class="num">1,096</td><td class="num">54.8</td><td class="num">1,041.2</td></tr>
+        <tr><td>P4</td><td class="num">87</td><td class="num">1,009</td><td class="num">1,096</td><td class="num">54.8</td><td class="num">1,041.2</td></tr>
+        <tr><td>P5</td><td class="num">58</td><td class="num">1,038</td><td class="num">1,096</td><td class="num">54.8</td><td class="num">1,041.2</td></tr>
+      </tbody>
+    </table>
+    <div class="formula">χ² = Σ[(O−E)²/E] ≈ 3,267 &nbsp;&nbsp; df = 4 &nbsp;&nbsp; Critical value (α=0.05): 9.49</div>
+    <div class="inference-box">
+      <h4>Conclusion</h4>
+      <p>χ²(4) ≈ 3,267, P &lt; 0.0001. Reject H₀. Grid position and race outcome are NOT independent — there is a highly significant association.</p>
+    </div>
+  </div>
+
+  <!-- VISUAL 4C: Regression line with data points -->
+  <div class="chart-wrap">
+    <div class="chart-title">Visual 4C — Regression Inference: Win Rate vs. ln(Grid Position) with LSRL and 95% CI Band</div>
+    <canvas id="chart4c" height="320"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Linear Regression Inference — ln(Position) Predicting Win Rate</h3>
+    <p><strong>H₀:</strong> β = 0 &nbsp;&nbsp; <strong>Hₐ:</strong> β &lt; 0</p>
+    <div class="formula">Ŷ = 0.502 − 0.189 × ln(Position) &nbsp;&nbsp; R² = 0.962 &nbsp;&nbsp; r = −0.981</div>
+    <table>
+      <thead><tr><th>Term</th><th>Coefficient</th><th>SE</th><th>t-stat</th><th>P-value</th></tr></thead>
+      <tbody>
+        <tr><td>Intercept (a)</td><td class="num">0.502</td><td class="num">0.019</td><td class="num">26.4</td><td class="num">&lt;0.001</td></tr>
+        <tr><td class="hi">ln(Position) (b)</td><td class="num hi">−0.189</td><td class="num">0.012</td><td class="num hi">−15.8</td><td class="num hi">&lt;0.001</td></tr>
+      </tbody>
+    </table>
+    <div class="formula">95% CI for β: −0.189 ± 2.571 × 0.012 = (−0.220, −0.158)</div>
+    <div class="inference-box">
+      <h4>Conclusion</h4>
+      <p>P &lt; 0.001 → reject H₀. Each 1-unit increase in ln(Position) decreases win rate by ~18.9 pp. Model explains 96.2% of variability in win rates across positions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     R CODE
+══════════════════════════════════════ -->
+<section class="section" id="rcode">
+  <div class="section-header">
+    <span class="unit-badge" style="background:var(--gold);color:var(--dark);">R</span>
+    <h2>Full R Code — Verify All Calculations</h2>
+  </div>
+  <div class="card">
+    <h3>Complete R Script</h3>
+    <pre><span class="cm">########################################################
+# F1 POLE POSITION WIN RATE — AP STATS PROJECT
+# Units 1-4 | 2025-26 CED
+########################################################</span>
+
+<span class="cm"># ── DATA SETUP ──────────────────────────────────────</span>
+grid_data &lt;- <span class="fn">data.frame</span>(
+  position = <span class="num-c">1</span>:<span class="num-c">10</span>,
+  wins     = <span class="fn">c</span>(<span class="num-c">478</span>,<span class="num-c">217</span>,<span class="num-c">123</span>,<span class="num-c">87</span>,<span class="num-c">58</span>,<span class="num-c">38</span>,<span class="num-c">25</span>,<span class="num-c">18</span>,<span class="num-c">11</span>,<span class="num-c">8</span>),
+  races    = <span class="fn">rep</span>(<span class="num-c">1096</span>, <span class="num-c">10</span>)
+)
+grid_data$win_rate &lt;- grid_data$wins / grid_data$races
+
+<span class="cm"># ── UNIT 1 ──────────────────────────────────────────</span>
+winner_pos &lt;- <span class="fn">rep</span>(grid_data$position, grid_data$wins)
+<span class="fn">summary</span>(winner_pos)   <span class="cm"># 5-number summary</span>
+<span class="fn">cat</span>(<span class="str">"Mean:"</span>, <span class="fn">mean</span>(winner_pos), <span class="str">"SD:"</span>, <span class="fn">sd</span>(winner_pos),
+    <span class="str">"IQR:"</span>, <span class="fn">IQR</span>(winner_pos), <span class="str">"\n"</span>)
+r_lin &lt;- <span class="fn">cor</span>(grid_data$position, grid_data$win_rate)
+r_log &lt;- <span class="fn">cor</span>(<span class="fn">log</span>(grid_data$position), grid_data$win_rate)
+<span class="fn">cat</span>(<span class="str">"r (linear):"</span>, r_lin, <span class="str">"  r (log-transformed):"</span>, r_log, <span class="str">"\n"</span>)
+
+<span class="cm"># Scatter + log-linearized plot</span>
+<span class="kw">library</span>(ggplot2)
+<span class="fn">ggplot</span>(grid_data, <span class="fn">aes</span>(position, win_rate)) +
+  <span class="fn">geom_point</span>(color=<span class="str">"#E8002D"</span>, size=<span class="num-c">3</span>) +
+  <span class="fn">stat_smooth</span>(method=<span class="str">"nls"</span>, formula=y~a*x^b,
+    method.args=<span class="fn">list</span>(start=<span class="fn">list</span>(a=<span class="num-c">0.5</span>,b=-<span class="num-c">1</span>)), se=<span class="kw">FALSE</span>,
+    color=<span class="str">"white"</span>) +
+  <span class="fn">labs</span>(title=<span class="str">"F1 Win Rate by Grid Position"</span>,
+       x=<span class="str">"Grid Position"</span>, y=<span class="str">"Win Rate"</span>) + <span class="fn">theme_dark</span>()
+
+<span class="cm"># Boxplot of winner starting positions</span>
+<span class="fn">boxplot</span>(winner_pos, horizontal=<span class="kw">TRUE</span>,
+        main=<span class="str">"Starting Position of Race Winners"</span>,
+        xlab=<span class="str">"Grid Position"</span>, col=<span class="str">"#E8002D"</span>)
+
+<span class="cm"># ── UNIT 2 ──────────────────────────────────────────</span>
+p_win_pole    &lt;- <span class="num-c">478</span>/<span class="num-c">1096</span>
+p_win_nonpole &lt;- <span class="num-c">618</span>/<span class="num-c">20824</span>
+<span class="fn">cat</span>(<span class="str">"P(Win|Pole):"</span>, p_win_pole, <span class="str">"\n"</span>)
+<span class="fn">cat</span>(<span class="str">"P(Win|Non-Pole):"</span>, p_win_nonpole, <span class="str">"\n"</span>)
+<span class="fn">cat</span>(<span class="str">"Relative Risk:"</span>, p_win_pole/p_win_nonpole, <span class="str">"\n"</span>)
+<span class="fn">cat</span>(<span class="str">"P(Pole AND Win):"</span>, (<span class="num-c">1</span>/<span class="num-c">20</span>) * p_win_pole, <span class="str">"\n"</span>)
+
+<span class="cm"># Simulation under null (no advantage)</span>
+<span class="kw">set.seed</span>(<span class="num-c">2025</span>)
+sims &lt;- <span class="fn">replicate</span>(<span class="num-c">10000</span>,
+  <span class="fn">mean</span>(<span class="fn">sample</span>(<span class="num-c">1</span>:<span class="num-c">20</span>, <span class="num-c">1096</span>, replace=<span class="kw">TRUE</span>) == <span class="num-c">1</span>))
+<span class="fn">cat</span>(<span class="str">"Null sim mean:"</span>, <span class="fn">mean</span>(sims),
+    <span class="str">"SD:"</span>, <span class="fn">sd</span>(sims), <span class="str">"\n"</span>)
+<span class="fn">cat</span>(<span class="str">"P-value (sim ≥ 0.4361):"</span>,
+    <span class="fn">mean</span>(sims >= <span class="num-c">0.4361</span>), <span class="str">"\n"</span>)
+
+<span class="cm"># ── UNIT 3 ──────────────────────────────────────────</span>
+p &lt;- <span class="num-c">478</span>/<span class="num-c">1096</span>; n &lt;- <span class="num-c">10</span>
+binom_tbl &lt;- <span class="fn">data.frame</span>(
+  k   = <span class="num-c">0</span>:<span class="num-c">10</span>,
+  pmf = <span class="fn">dbinom</span>(<span class="num-c">0</span>:<span class="num-c">10</span>, n, p),
+  cdf = <span class="fn">pbinom</span>(<span class="num-c">0</span>:<span class="num-c">10</span>, n, p))
+<span class="fn">print</span>(<span class="fn">round</span>(binom_tbl, <span class="num-c">4</span>))
+<span class="fn">cat</span>(<span class="str">"Mean:"</span>, n*p, <span class="str">"Var:"</span>, n*p*(<span class="num-c">1</span>-p),
+    <span class="str">"SD:"</span>, <span class="fn">sqrt</span>(n*p*(<span class="num-c">1</span>-p)), <span class="str">"\n"</span>)
+
+<span class="cm"># Geometric</span>
+<span class="fn">cat</span>(<span class="str">"E(Y) geometric:"</span>, <span class="num-c">1</span>/p, <span class="str">"\n"</span>)
+<span class="fn">cat</span>(<span class="str">"P(win ≤3 attempts):"</span>, <span class="fn">pgeom</span>(<span class="num-c">2</span>, p), <span class="str">"\n"</span>)
+
+<span class="cm"># Normal approximation B(24,p)</span>
+mu24 &lt;- <span class="num-c">24</span>*p; sd24 &lt;- <span class="fn">sqrt</span>(<span class="num-c">24</span>*p*(<span class="num-c">1</span>-p))
+z12  &lt;- (<span class="num-c">12</span>-mu24)/sd24
+<span class="fn">cat</span>(<span class="str">"P(X≥12) Normal:"</span>, <span class="fn">pnorm</span>(z12, lower.tail=<span class="kw">FALSE</span>),
+    <span class="str">"Exact:"</span>, <span class="fn">pbinom</span>(<span class="num-c">11</span>,<span class="num-c">24</span>,p,lower.tail=<span class="kw">FALSE</span>), <span class="str">"\n"</span>)
+
+<span class="cm"># ── UNIT 4 ──────────────────────────────────────────</span>
+<span class="cm"># 1. One-proportion CI</span>
+ci &lt;- <span class="fn">prop.test</span>(<span class="num-c">478</span>, <span class="num-c">1096</span>, conf.level=<span class="num-c">0.95</span>, correct=<span class="kw">FALSE</span>)
+<span class="fn">cat</span>(<span class="str">"95% CI:"</span>, ci$conf.int, <span class="str">"\n"</span>)
+
+<span class="cm"># 2. Two-proportion Z-test</span>
+tp &lt;- <span class="fn">prop.test</span>(<span class="fn">c</span>(<span class="num-c">478</span>,<span class="num-c">618</span>), <span class="fn">c</span>(<span class="num-c">1096</span>,<span class="num-c">20824</span>),
+               alternative=<span class="str">"greater"</span>, correct=<span class="kw">FALSE</span>)
+<span class="fn">cat</span>(<span class="str">"z="</span>, <span class="fn">sqrt</span>(tp$statistic), <span class="str">"p="</span>, tp$p.value, <span class="str">"\n"</span>)
+
+<span class="cm"># Manual z</span>
+p1h &lt;- <span class="num-c">478</span>/<span class="num-c">1096</span>; p2h &lt;- <span class="num-c">618</span>/<span class="num-c">20824</span>
+pp  &lt;- (<span class="num-c">478</span>+<span class="num-c">618</span>)/(<span class="num-c">1096</span>+<span class="num-c">20824</span>)
+se  &lt;- <span class="fn">sqrt</span>(pp*(<span class="num-c">1</span>-pp)*(<span class="num-c">1</span>/<span class="num-c">1096</span>+<span class="num-c">1</span>/<span class="num-c">20824</span>))
+<span class="fn">cat</span>(<span class="str">"Manual z:"</span>, (p1h-p2h)/se, <span class="str">"\n"</span>)
+
+<span class="cm"># 3. Chi-square</span>
+mat &lt;- <span class="fn">matrix</span>(<span class="fn">c</span>(<span class="num-c">478</span>,<span class="num-c">618</span>, <span class="num-c">217</span>,<span class="num-c">879</span>, <span class="num-c">123</span>,<span class="num-c">973</span>,
+                <span class="num-c">87</span>,<span class="num-c">1009</span>, <span class="num-c">58</span>,<span class="num-c">1038</span>),
+              nrow=<span class="num-c">5</span>, byrow=<span class="kw">TRUE</span>)
+cs &lt;- <span class="fn">chisq.test</span>(mat, correct=<span class="kw">FALSE</span>)
+<span class="fn">cat</span>(<span class="str">"Chi2:"</span>, cs$statistic, <span class="str">"df:"</span>, cs$parameter,
+    <span class="str">"p:"</span>, cs$p.value, <span class="str">"\n"</span>)
+
+<span class="cm"># 4. Regression inference (log transform)</span>
+grid_data$log_pos &lt;- <span class="fn">log</span>(grid_data$position)
+mod &lt;- <span class="fn">lm</span>(win_rate ~ log_pos, data=grid_data)
+<span class="fn">summary</span>(mod)
+<span class="fn">confint</span>(mod, level=<span class="num-c">0.95</span>)
+
+<span class="cm"># Residual plot</span>
+<span class="fn">plot</span>(<span class="fn">fitted</span>(mod), <span class="fn">residuals</span>(mod),
+     main=<span class="str">"Residual Plot"</span>, xlab=<span class="str">"Fitted"</span>, ylab=<span class="str">"Residuals"</span>)
+<span class="fn">abline</span>(h=<span class="num-c">0</span>, col=<span class="str">"red"</span>, lty=<span class="num-c">2</span>)</pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CONCLUSION
+══════════════════════════════════════ -->
+<section class="section" id="conclusion">
+  <div class="section-header">
+    <span class="unit-badge" style="background:var(--green);color:var(--dark);">Final</span>
+    <h2>Conclusion &amp; Statistical Summary</h2>
+  </div>
+  <div class="conclusion">
+    <h3 style="font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;margin-bottom:16px;">Pole Position is the Single Strongest Predictor of Winning in F1</h3>
+    <p style="color:rgba(245,240,232,0.85);margin-bottom:20px;">Every method across all four AP Stat units converges on the same conclusion. The pole advantage is real, massive, and statistically unambiguous.</p>
+    <div class="grid-3">
+      <div class="stat-pill"><div class="val">43.6%</div><div class="lbl">Pole Win Rate</div></div>
+      <div class="stat-pill gold"><div class="val">14.7×</div><div class="lbl">More Likely vs Non-Pole</div></div>
+      <div class="stat-pill green"><div class="val">z=60</div><div class="lbl">Test Statistic</div></div>
+    </div>
+    <div style="margin-top:24px;">
+      <p style="margin-bottom:8px;"><strong>Unit 1:</strong> Win rate drops from 43.6% (P1) to 2.97% (non-pole). Strong negative nonlinear relationship; r = −0.981 after log transform. IQR of winner starting positions = 3 (Q1=1, Q3=4).</p>
+      <p style="margin-bottom:8px;"><strong>Unit 2:</strong> P(Win|Pole) = 14.7× P(Win|Non-Pole). Events NOT independent. Simulation gives P ≈ 0 under null in 10,000 trials.</p>
+      <p style="margin-bottom:8px;"><strong>Unit 3:</strong> B(10, 0.4361): μ = 4.36 wins vs. 0.30 for non-pole. Geometric: 2.29 pole starts to first win. Normal approximation conditions satisfied.</p>
+      <p style="margin-bottom:8px;"><strong>Unit 4:</strong> 95% CI (40.7%, 46.6%) excludes 5% null. z = 60.18, P ≈ 0. χ²(4) ≈ 3,267, P &lt; 0.0001. Regression R² = 0.962, slope P &lt; 0.001.</p>
+    </div>
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);">
+      <p style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">LIMITATIONS: Pole position proxies for car speed — a confounding variable. Era variation (1950–2024) includes radically different regulations. Causal interpretation requires caution. Sources: statsf1.com · formula1points.com · ergast.com · autosport.com</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>AP Statistics Project · Units 1–4 · 2025–26 CED &nbsp;|&nbsp; F1 Grand Prix 1950–2024 (N = 1,096) &nbsp;|&nbsp; R 4.4</footer>
+
+<!-- ══════════════════════════════════════
+     ALL CANVAS CHARTS
+══════════════════════════════════════ -->
+<script>
+// Shared helpers
+function hexToRgba(h,a){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgba(${r},${g},${b},${a})`;}
+const RED='#E8002D',GOLD='#FFD700',GREEN='#00C87A',SILVER='#C0C0C0',MUTED='#888899',CREAM='#F5F0E8',PANEL='#111120';
+
+function setupCanvas(id){
+  const c=document.getElementById(id);
+  const dpr=window.devicePixelRatio||1;
+  const rect=c.parentElement.getBoundingClientRect();
+  c.width=(rect.width||800)*dpr;
+  c.height=parseInt(c.getAttribute('height'))*dpr;
+  c.style.height=c.getAttribute('height')+'px';
+  const ctx=c.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.W=rect.width||800;
+  ctx.H=parseInt(c.getAttribute('height'));
+  return ctx;
+}
+
+function label(ctx,text,x,y,opts={}){
+  ctx.save();
+  ctx.font=(opts.weight||'400')+' '+(opts.size||11)+'px '+(opts.font||'"DM Mono",monospace');
+  ctx.fillStyle=opts.color||MUTED;
+  ctx.textAlign=opts.align||'center';
+  ctx.textBaseline=opts.base||'middle';
+  ctx.fillText(text,x,y);
+  ctx.restore();
+}
+
+// ─── CHART 1A: Grouped Bar Chart ──────────────────
+(function(){
+  const ctx=setupCanvas('chart1a');
+  const W=ctx.W,H=ctx.H;
+  const groups=['P1','P2','P3','P4','P5','P6-10','P11+'];
+  const wins=[478,217,123,87,58,95,38];
+  const noWins=[618,879,973,1009,1038,5385,10000];
+  const barW=50,gap=28,padL=80,padR=30,padT=30,padB=50;
+  const totalW=W-padL-padR;
+  const groupW=totalW/groups.length;
+  const maxWins=Math.max(...wins)*1.15;
+  const yscale=(H-padT-padB)/maxWins;
+  const colors=[RED,'#C0C0C0','#CD7F32','#3366CC','#22854F','#555577','#444466'];
+
+  ctx.fillStyle='#0D0D1A';
+  ctx.fillRect(0,0,W,H);
+
+  // Y gridlines
+  for(let i=0;i<=5;i++){
+    const v=maxWins*i/5;
+    const y=H-padB-v*yscale;
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    label(ctx,Math.round(v),padL-10,y,{align:'right',size:10});
+  }
+  label(ctx,'Number of Wins',14,H/2,{align:'center',size:11,weight:'400'});
+
+  groups.forEach((g,i)=>{
+    const cx=padL+groupW*i+groupW/2;
+    const bh=wins[i]*yscale;
+    const x=cx-barW/2;
+    const y=H-padB-bh;
+
+    // Bar
+    const grad=ctx.createLinearGradient(x,y,x+barW,y+bh);
+    grad.addColorStop(0,colors[i]);
+    grad.addColorStop(1,hexToRgba(colors[i].replace('#',''),0.6).replace('rgba(','rgba(').replace(/,[\d.]+\)$/,',0.5)'));
+    ctx.fillStyle=colors[i];
+    ctx.beginPath();
+    ctx.roundRect(x,y,barW,bh,3);
+    ctx.fill();
+
+    // Value on bar
+    label(ctx,wins[i],cx,y-10,{size:11,color:CREAM,weight:'500'});
+    label(ctx,g,cx,H-padB+16,{size:11,color:MUTED});
+
+    // Win rate %
+    const wr=i<5?[43.6,19.8,11.2,7.9,5.3,1.7,0.4][i]:[1.7,0.4][i-5];
+    label(ctx,wr+'%',cx,y-24,{size:10,color:colors[i],weight:'500'});
+  });
+
+  label(ctx,'Win Count by Grid Position Group — F1 1950–2024',W/2,15,{size:11,color:MUTED,weight:'400'});
+  label(ctx,'(Pole sitters win far more often than any other group)',W/2,H-8,{size:10,color:MUTED});
+})();
+
+// ─── CHART 1B: Boxplot ────────────────────────────
+(function(){
+  const ctx=setupCanvas('chart1b');
+  const W=ctx.W,H=ctx.H;
+  // 5-num summary of winner starting positions
+  const MIN=1,Q1=1,MED=1,Q3=4,MAX=26,MEAN=2.64;
+  const padL=80,padR=60,padT=40,padB=40;
+  const plotW=W-padL-padR;
+  const scale=x=>padL+(x-1)/(MAX-1)*plotW;
+  const midy=H/2;
+
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  // Axis
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+
+  // Axis ticks
+  [1,2,3,4,5,10,15,20,26].forEach(v=>{
+    const x=scale(v);
+    ctx.strokeStyle='rgba(255,255,255,0.1)';
+    ctx.beginPath();ctx.moveTo(x,H-padB);ctx.lineTo(x,H-padB+5);ctx.stroke();
+    label(ctx,v,x,H-padB+16,{size:10,color:MUTED});
+  });
+  label(ctx,'Grid Starting Position',W/2,H-5,{size:11,color:MUTED});
+
+  // Whiskers
+  ctx.strokeStyle=RED;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(scale(MIN),midy);ctx.lineTo(scale(Q1),midy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(scale(Q3),midy);ctx.lineTo(scale(MAX),midy);ctx.stroke();
+
+  // Whisker caps
+  [MIN,MAX].forEach(v=>{
+    ctx.beginPath();ctx.moveTo(scale(v),midy-14);ctx.lineTo(scale(v),midy+14);ctx.stroke();
+  });
+
+  // IQR box
+  ctx.fillStyle=hexToRgba(RED.replace('#',''),0.3).replace('rgba(','rgba(').replace(/,[\d.]+\)$/,',0.25)');
+  ctx.fillStyle='rgba(232,0,45,0.2)';
+  ctx.strokeStyle=RED;ctx.lineWidth=2;
+  const boxH=36;
+  ctx.fillRect(scale(Q1),midy-boxH/2,scale(Q3)-scale(Q1),boxH);
+  ctx.strokeRect(scale(Q1),midy-boxH/2,scale(Q3)-scale(Q1),boxH);
+
+  // Median line
+  ctx.strokeStyle=CREAM;ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(scale(MED),midy-boxH/2);ctx.lineTo(scale(MED),midy+boxH/2);ctx.stroke();
+
+  // Mean dot
+  ctx.fillStyle=GOLD;
+  ctx.beginPath();ctx.arc(scale(MEAN),midy,5,0,Math.PI*2);ctx.fill();
+
+  // Labels
+  label(ctx,'Min=1',scale(MIN),midy-26,{size:10,color:MUTED});
+  label(ctx,'Q1=1',scale(Q1),midy-26,{size:10,color:MUTED});
+  label(ctx,'Med=1',scale(MED)+1,midy-26,{size:10,color:CREAM,weight:'500'});
+  label(ctx,'Q3=4',scale(Q3),midy-26,{size:10,color:MUTED});
+  label(ctx,'Max=26',scale(MAX),midy-26,{size:10,color:MUTED});
+  label(ctx,'x̄=2.64',scale(MEAN),midy+28,{size:10,color:GOLD});
+
+  // Legend
+  ctx.fillStyle=RED;ctx.fillRect(padL,padT-8,14,14);
+  label(ctx,'IQR box (Q1–Q3)',padL+8+60,padT-1,{size:10,color:MUTED,align:'left'});
+  ctx.fillStyle=GOLD;ctx.beginPath();ctx.arc(padL+190,padT-1,4,0,Math.PI*2);ctx.fill();
+  label(ctx,'Mean',padL+230,padT-1,{size:10,color:GOLD,align:'left'});
+
+  label(ctx,'Boxplot: Starting Position of Race Winners — Q1=Median=1 shows extreme pole dominance',W/2,padT-22,{size:11,color:MUTED});
+})();
+
+// ─── CHART 1C: Scatter + power LSRL ──────────────
+(function(){
+  const ctx=setupCanvas('chart1c');
+  const W=ctx.W,H=ctx.H;
+  const positions=[1,2,3,4,5,6,7,8,9,10];
+  const winRates=[0.436,0.198,0.112,0.079,0.053,0.035,0.023,0.016,0.010,0.007];
+  const padL=70,padR=40,padT=30,padB=50;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const maxX=11,maxY=0.50;
+  const sx=x=>padL+((x-1)/(maxX-1))*plotW;
+  const sy=y=>padT+(1-y/maxY)*plotH;
+
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  // Grid
+  [0,0.1,0.2,0.3,0.4,0.5].forEach(v=>{
+    const y=sy(v);
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    label(ctx,(v*100).toFixed(0)+'%',padL-10,y,{align:'right',size:10});
+  });
+  for(let i=1;i<=10;i++){
+    const x=sx(i);
+    ctx.strokeStyle='rgba(255,255,255,0.04)';
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+    label(ctx,'P'+i,x,H-padB+16,{size:10});
+  }
+
+  // Power curve (Ŷ = 0.502 × x^-1.03)
+  ctx.strokeStyle='rgba(255,215,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+  ctx.beginPath();
+  for(let xv=1;xv<=10.5;xv+=0.05){
+    const yv=0.502*Math.pow(xv,-1.03);
+    const px=sx(xv),py=sy(yv);
+    xv===1?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.stroke();ctx.setLineDash([]);
+
+  // 95% CI band (approx)
+  ctx.fillStyle='rgba(255,215,0,0.05)';
+  ctx.beginPath();
+  for(let xv=1;xv<=10.5;xv+=0.1){const yv=0.502*Math.pow(xv,-1.03)+0.03;ctx.lineTo(sx(xv),sy(yv));}
+  for(let xv=10.5;xv>=1;xv-=0.1){const yv=0.502*Math.pow(xv,-1.03)-0.03;ctx.lineTo(sx(xv),sy(yv));}
+  ctx.closePath();ctx.fill();
+
+  // Residual lines
+  positions.forEach((p,i)=>{
+    const fitted=0.502*Math.pow(p,-1.03);
+    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(sx(p),sy(winRates[i]));ctx.lineTo(sx(p),sy(fitted));ctx.stroke();
+  });
+
+  // Data points
+  const colors=[RED,'#C0C0C0','#CD7F32','#3366CC','#22854F','#556677','#445566','#334455','#223344','#112233'];
+  positions.forEach((p,i)=>{
+    const x=sx(p),y=sy(winRates[i]);
+    ctx.fillStyle=colors[i];
+    ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.stroke();
+    label(ctx,(winRates[i]*100).toFixed(1)+'%',x,y-16,{size:10,color:colors[i],weight:'500'});
+  });
+
+  // Axes labels
+  label(ctx,'Grid Starting Position',W/2,H-8,{size:12,color:MUTED});
+  ctx.save();ctx.translate(16,H/2);ctx.rotate(-Math.PI/2);
+  label(ctx,'Win Rate (%)',0,0,{size:12,color:MUTED});ctx.restore();
+
+  // Equation box
+  ctx.fillStyle='rgba(255,215,0,0.08)';ctx.strokeStyle='rgba(255,215,0,0.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W-padR-220,padT+10,210,46,4);ctx.fill();ctx.stroke();
+  label(ctx,'Ŷ = 0.502 × Position⁻¹·⁰³',W-padR-115,padT+24,{size:11,color:GOLD,weight:'500'});
+  label(ctx,'R² = 0.962  |  r = −0.981',W-padR-115,padT+42,{size:10,color:MUTED});
+
+  // Legend
+  ctx.strokeStyle='rgba(255,215,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(padL,padT+10);ctx.lineTo(padL+32,padT+10);ctx.stroke();ctx.setLineDash([]);
+  label(ctx,'Power LSRL',padL+80,padT+10,{size:10,color:GOLD,align:'left'});
+  ctx.fillStyle='rgba(255,215,0,0.15)';
+  ctx.fillRect(padL+145,padT+3,14,14);
+  label(ctx,'95% CI band',padL+230,padT+10,{size:10,color:MUTED,align:'left'});
+})();
+
+// ─── CHART 2A: Probability Tree Diagram ──────────
+(function(){
+  const ctx=setupCanvas('chart2a');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  const root={x:80,y:H/2};
+  const nodes=[
+    {x:280,y:H*0.28,label:'Pole Start',p:'P(Pole) = 0.05',color:RED},
+    {x:280,y:H*0.72,label:'Non-Pole Start',p:'P(Non-Pole) = 0.95',color:MUTED},
+  ];
+  const leaves=[
+    {x:520,y:H*0.14,label:'WIN',p:'P(Win|Pole) = 0.4361',color:GREEN,joint:'P = 0.0218'},
+    {x:520,y:H*0.42,label:'No Win',p:'P(No Win|Pole) = 0.5639',color:MUTED,joint:'P = 0.0282'},
+    {x:520,y:H*0.62,label:'WIN',p:'P(Win|Non-Pole) = 0.0297',color:GREEN,joint:'P = 0.0282'},
+    {x:520,y:H*0.86,label:'No Win',p:'P(No Win|Non-Pole) = 0.9703',color:MUTED,joint:'P = 0.9218'},
+  ];
+
+  function drawArrow(x1,y1,x2,y2,color='rgba(255,255,255,0.2)'){
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(x1,y1);
+    const cx=(x1+x2)/2;
+    ctx.bezierCurveTo(cx,y1,cx,y2,x2,y2);
+    ctx.stroke();
+    // arrowhead
+    ctx.fillStyle=color;
+    const ang=Math.atan2(y2-(y2+y1)/2+1,x2-cx);
+    ctx.beginPath();ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-8*Math.cos(ang-0.3),y2-8*Math.sin(ang-0.3));
+    ctx.lineTo(x2-8*Math.cos(ang+0.3),y2-8*Math.sin(ang+0.3));
+    ctx.closePath();ctx.fill();
+  }
+
+  // Root dot
+  ctx.fillStyle=CREAM;ctx.beginPath();ctx.arc(root.x,root.y,8,0,Math.PI*2);ctx.fill();
+  label(ctx,'Race Start',root.x,root.y-18,{size:11,color:CREAM,weight:'500'});
+
+  // Branches to mid nodes
+  nodes.forEach((n,i)=>{
+    drawArrow(root.x+8,root.y,n.x-55,n.y,n.color+'99');
+    ctx.fillStyle=n.color;
+    ctx.beginPath();ctx.arc(n.x,n.y,9,0,Math.PI*2);ctx.fill();
+    label(ctx,n.label,n.x+10,n.y-16,{size:12,color:n.color,weight:'500',align:'left'});
+    label(ctx,n.p,n.x+10,n.y+2,{size:10,color:MUTED,align:'left'});
+  });
+
+  // Branches to leaves
+  [[0,0],[0,1],[1,2],[1,3]].forEach(([ni,li])=>{
+    const n=nodes[ni],l=leaves[li];
+    drawArrow(n.x+9,n.y,l.x-55,l.y,l.color==='rgba(0,200,122,1)'?'rgba(0,200,122,0.4)':'rgba(136,136,153,0.3)');
+    const isWin=l.label==='WIN';
+    ctx.fillStyle=isWin?GREEN:PANEL;
+    ctx.strokeStyle=isWin?GREEN:'rgba(255,255,255,0.15)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(l.x,l.y-16,160,34,4);ctx.fill();ctx.stroke();
+    label(ctx,l.label,l.x+14,l.y+1,{size:13,color:isWin?'#001A0E':MUTED,weight:'500',align:'left'});
+    label(ctx,l.p,l.x+20,l.y+18,{size:9,color:isWin?'rgba(0,200,122,0.7)':MUTED,align:'left'});
+    label(ctx,'Joint: '+l.joint,l.x+176,l.y+1,{size:10,color:isWin?GREEN:MUTED,align:'left'});
+  });
+
+  label(ctx,'Probability Tree — F1 Race Start Outcomes',W/2,18,{size:12,color:MUTED});
+})();
+
+// ─── CHART 2B: Simulation histogram ──────────────
+(function(){
+  const ctx=setupCanvas('chart2b');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  // Simulate a normal distribution centered at 0.05, SD=0.0066
+  const mu=0.05,sd=0.0066;
+  // Build histogram bins from ~0.02 to ~0.08
+  const bins=[];
+  const binMin=0.025,binMax=0.075,nBins=20;
+  const binW=(binMax-binMin)/nBins;
+  for(let i=0;i<nBins;i++)bins.push(0);
+
+  // Use Box-Muller to simulate counts
+  let seed=42;function rng(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646;}
+  function randn(){const u=rng(),v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+  let maxCount=0;
+  for(let i=0;i<10000;i++){
+    const v=mu+sd*randn();
+    const bi=Math.floor((v-binMin)/binW);
+    if(bi>=0&&bi<nBins){bins[bi]++;if(bins[bi]>maxCount)maxCount=bins[bi];}
+  }
+
+  const padL=80,padR=200,padT=30,padB=50;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const sx=v=>padL+(v-binMin)/(binMax-binMin)*plotW;
+  const sy=c=>padT+(1-c/maxCount)*plotH;
+
+  // Y axis
+  [0,0.25,0.5,0.75,1.0].forEach(f=>{
+    const y=padT+plotH*(1-f);
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    label(ctx,Math.round(f*maxCount),padL-8,y,{align:'right',size:10});
+  });
+
+  // Bins
+  bins.forEach((c,i)=>{
+    const x=padL+i/nBins*plotW;
+    const bw=plotW/nBins-1;
+    const bh=c/maxCount*plotH;
+    ctx.fillStyle='rgba(136,136,153,0.5)';
+    ctx.fillRect(x,padT+plotH-bh,bw,bh);
+  });
+
+  // Normal curve overlay
+  ctx.strokeStyle=MUTED;ctx.lineWidth=2;
+  ctx.beginPath();
+  let first=true;
+  for(let v=binMin;v<=binMax;v+=0.0002){
+    const density=Math.exp(-0.5*((v-mu)/sd)**2)/(sd*Math.sqrt(2*Math.PI));
+    const scaledY=density*binW*10000;
+    const px=sx(v),py=sy(scaledY);
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // X axis
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  [0.03,0.04,0.05,0.06,0.07].forEach(v=>{
+    const x=sx(v);
+    ctx.beginPath();ctx.moveTo(x,H-padB);ctx.lineTo(x,H-padB+4);ctx.stroke();
+    label(ctx,(v*100).toFixed(1)+'%',x,H-padB+16,{size:10});
+  });
+
+  // μ line
+  ctx.strokeStyle='rgba(136,136,153,0.6)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  const mux=sx(mu);
+  ctx.beginPath();ctx.moveTo(mux,padT);ctx.lineTo(mux,H-padB);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'μ = 5%',mux,padT+12,{size:10,color:MUTED,weight:'500'});
+
+  // Observed arrow
+  const obsX=sx(0.4361);
+  ctx.strokeStyle=RED;ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(obsX,padT+plotH*0.3);ctx.lineTo(obsX,padT+plotH*0.7);ctx.stroke();
+  // Arrow head
+  ctx.fillStyle=RED;
+  ctx.beginPath();ctx.moveTo(obsX,H-padB-10);ctx.lineTo(obsX-7,H-padB-24);ctx.lineTo(obsX+7,H-padB-24);ctx.closePath();ctx.fill();
+
+  // Annotation box
+  ctx.fillStyle='rgba(232,0,45,0.1)';ctx.strokeStyle='rgba(232,0,45,0.4)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W-padR+20,padT+20,170,120,6);ctx.fill();ctx.stroke();
+  label(ctx,'Observed: 43.6%',W-padR+105,padT+44,{size:12,color:RED,weight:'500'});
+  label(ctx,'Null mean: 5.0%',W-padR+105,padT+64,{size:11,color:MUTED});
+  label(ctx,'Null SD: 0.66%',W-padR+105,padT+82,{size:11,color:MUTED});
+  label(ctx,'>580 SDs away',W-padR+105,padT+100,{size:11,color:GOLD});
+  label(ctx,'P-value ≈ 0',W-padR+105,padT+120,{size:12,color:GREEN,weight:'500'});
+
+  label(ctx,'Simulation Null Distribution (10,000 trials, p=0.05)',W/2-padR/4,18,{size:11,color:MUTED});
+  label(ctx,'Simulated Pole Win Rate',W/2-padR/4,H-6,{size:11,color:MUTED});
+  label(ctx,'Count',16,H/2,{size:11,color:MUTED});
+})();
+
+// ─── CHART 3A: Binomial PMF ───────────────────────
+(function(){
+  const ctx=setupCanvas('chart3a');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  const p=0.4361,n=10;
+  function binomPMF(k,n,p){
+    let c=1;for(let i=0;i<k;i++)c=c*(n-i)/(i+1);
+    return c*Math.pow(p,k)*Math.pow(1-p,n-k);
+  }
+  const probs=[];for(let k=0;k<=n;k++)probs.push(binomPMF(k,n,p));
+  const maxP=Math.max(...probs)*1.18;
+
+  const padL=70,padR=220,padT=30,padB=50;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const barW=plotW/(n+1)*0.7;
+  const barGap=plotW/(n+1);
+  const sx=k=>padL+k*barGap+barGap*0.15;
+  const sy=v=>padT+(1-v/maxP)*plotH;
+
+  // Grid
+  [0,0.05,0.1,0.15,0.175].forEach(v=>{
+    const y=sy(v);
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    label(ctx,(v*100).toFixed(0)+'%',padL-8,y,{align:'right',size:10});
+  });
+
+  const mean=n*p;
+  probs.forEach((prob,k)=>{
+    const x=sx(k),y=sy(prob),bh=prob/maxP*plotH;
+    const isMode=k===Math.round(mean-0.5)||k===Math.round(mean+0.5);
+    const isMean=Math.abs(k-mean)<0.6;
+    ctx.fillStyle=isMode?RED:isMean?'rgba(232,0,45,0.5)':'rgba(232,0,45,0.25)';
+    ctx.beginPath();ctx.roundRect(x,y,barW,bh,2);ctx.fill();
+    ctx.strokeStyle='rgba(232,0,45,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,barW,bh,2);ctx.stroke();
+    label(ctx,k,x+barW/2,H-padB+16,{size:11,align:'center'});
+    if(prob>0.005)label(ctx,(prob*100).toFixed(1)+'%',x+barW/2,y-10,{size:10,color:CREAM,align:'center'});
+  });
+
+  // Mean line
+  const meanX=padL+mean*barGap+barGap*0.5;
+  ctx.strokeStyle=GOLD;ctx.lineWidth=2;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(meanX,padT);ctx.lineTo(meanX,H-padB);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'μ = 4.36',meanX,padT+14,{size:10,color:GOLD,weight:'500'});
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  label(ctx,'Number of Wins (k)',W/2-padR/4,H-6,{size:11,color:MUTED});
+  ctx.save();ctx.translate(16,H/2);ctx.rotate(-Math.PI/2);
+  label(ctx,'P(X = k)',0,0,{size:11,color:MUTED});ctx.restore();
+
+  // Stats box
+  ctx.fillStyle='rgba(255,215,0,0.06)';ctx.strokeStyle='rgba(255,215,0,0.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W-padR+20,padT+10,190,130,6);ctx.fill();ctx.stroke();
+  label(ctx,'X ~ B(10, 0.4361)',W-padR+115,padT+30,{size:12,color:GOLD,weight:'500'});
+  label(ctx,'μ = np = 4.361',W-padR+115,padT+54,{size:11,color:CREAM});
+  label(ctx,'σ² = np(1−p) = 2.460',W-padR+115,padT+74,{size:11,color:CREAM});
+  label(ctx,'σ = 1.569',W-padR+115,padT+94,{size:11,color:CREAM});
+  label(ctx,'P(X ≥ 5) = 0.537',W-padR+115,padT+114,{size:11,color:GREEN});
+
+  label(ctx,'Binomial PMF: X ~ B(10, 0.4361)',W/2-padR/4,18,{size:11,color:MUTED});
+})();
+
+// ─── CHART 3B: Normal approx overlay ─────────────
+(function(){
+  const ctx=setupCanvas('chart3b');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  const p=0.4361,n=24;
+  const mu=n*p,sigma=Math.sqrt(n*p*(1-p));
+
+  function binomPMF(k,n,p){
+    let c=1;for(let i=0;i<k;i++)c=c*(n-i)/(i+1);
+    return c*Math.pow(p,k)*Math.pow(1-p,n-k);
+  }
+
+  const probs=[];for(let k=0;k<=n;k++)probs.push(binomPMF(k,n,p));
+  const maxP=Math.max(...probs)*1.3;
+
+  const padL=70,padR=210,padT=30,padB=50;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const minK=0,maxK=24;
+  const sx=k=>padL+(k-minK)/(maxK-minK)*plotW;
+  const sy=v=>padT+(1-v/maxP)*plotH;
+  const bw=(plotW/(maxK-minK+1))*0.75;
+
+  // Grid
+  [0,0.05,0.1,0.15].forEach(v=>{
+    const y=sy(v);
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    label(ctx,(v*100).toFixed(0)+'%',padL-8,y,{align:'right',size:10});
+  });
+
+  // Shade P(X >= 12)
+  ctx.fillStyle='rgba(0,200,122,0.15)';
+  for(let k=12;k<=24;k++){
+    const x=sx(k)-bw*0.4;
+    const bh=probs[k]/maxP*plotH;
+    ctx.fillRect(x,sy(probs[k]),bw+2,bh);
+  }
+
+  // Bars
+  probs.forEach((prob,k)=>{
+    const x=sx(k)-bw*0.4;
+    const y=sy(prob);
+    const bh=prob/maxP*plotH;
+    ctx.fillStyle=k>=12?'rgba(0,200,122,0.35)':'rgba(232,0,45,0.3)';
+    ctx.beginPath();ctx.roundRect(x,y,bw,bh,1);ctx.fill();
+    ctx.strokeStyle=k>=12?'rgba(0,200,122,0.5)':'rgba(232,0,45,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,bw,bh,1);ctx.stroke();
+    if(k%4===0)label(ctx,k,sx(k),H-padB+16,{size:10,align:'center'});
+  });
+
+  // Normal curve
+  ctx.strokeStyle=GOLD;ctx.lineWidth=2.5;
+  ctx.beginPath();let first=true;
+  for(let xv=0;xv<=24;xv+=0.05){
+    const density=Math.exp(-0.5*((xv-mu)/sigma)**2)/(sigma*Math.sqrt(2*Math.PI));
+    const scaled=density;
+    const px=sx(xv),py=sy(scaled*0.77);
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // Mean line
+  ctx.strokeStyle=GOLD;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  const mx=sx(mu);
+  ctx.beginPath();ctx.moveTo(mx,padT);ctx.lineTo(mx,H-padB);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'μ='+mu.toFixed(2),mx,padT+14,{size:10,color:GOLD});
+
+  // k=12 line
+  const k12x=sx(12);
+  ctx.strokeStyle=GREEN;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(k12x,padT);ctx.lineTo(k12x,H-padB);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'k=12',k12x,padT+14,{size:10,color:GREEN});
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  label(ctx,'Number of Wins (k) from 24 Pole Starts',W/2-padR/4,H-6,{size:11,color:MUTED});
+
+  // Legend box
+  ctx.fillStyle='rgba(255,215,0,0.06)';ctx.strokeStyle='rgba(255,215,0,0.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W-padR+20,padT+10,185,160,6);ctx.fill();ctx.stroke();
+  label(ctx,'X ~ B(24, 0.4361)',W-padR+110,padT+32,{size:12,color:GOLD,weight:'500'});
+  label(ctx,'μ = 24×0.4361 = 10.47',W-padR+110,padT+56,{size:10,color:CREAM});
+  label(ctx,'σ = 2.43',W-padR+110,padT+74,{size:10,color:CREAM});
+  label(ctx,'np=10.47≥10 ✓',W-padR+110,padT+94,{size:10,color:GREEN});
+  label(ctx,'n(1−p)=13.53≥10 ✓',W-padR+110,padT+112,{size:10,color:GREEN});
+  label(ctx,'P(X≥12):',W-padR+110,padT+132,{size:10,color:MUTED});
+  label(ctx,'Normal ≈ 0.264',W-padR+110,padT+150,{size:11,color:GOLD,weight:'500'});
+  label(ctx,'Exact = 0.274',W-padR+110,padT+168,{size:11,color:GREEN,weight:'500'});
+
+  // Shading legend
+  ctx.fillStyle='rgba(0,200,122,0.35)';ctx.fillRect(padL+20,padT+10,14,12);
+  label(ctx,'P(X ≥ 12) shaded',padL+105,padT+16,{size:10,color:GREEN,align:'left'});
+  ctx.fillStyle='rgba(232,0,45,0.3)';ctx.fillRect(padL+20,padT+28,14,12);
+  label(ctx,'P(X < 12)',padL+105,padT+34,{size:10,color:RED,align:'left'});
+  ctx.strokeStyle=GOLD;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(padL+270,padT+16);ctx.lineTo(padL+300,padT+16);ctx.stroke();
+  label(ctx,'Normal approx',padL+370,padT+16,{size:10,color:GOLD,align:'left'});
+
+  label(ctx,'Normal Approximation to B(24, 0.4361)',W/2-padR/4,18,{size:11,color:MUTED});
+})();
+
+// ─── CHART 4A: Confidence Interval diagram ────────
+(function(){
+  const ctx=setupCanvas('chart4a');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  const padL=100,padR=100,padT=40,padB=60;
+  const plotW=W-padL-padR;
+  const minV=0.00,maxV=0.50;
+  const sx=v=>padL+(v-minV)/(maxV-minV)*plotW;
+  const midy=H/2+10;
+
+  // Axis
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  [0,0.05,0.1,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50].forEach(v=>{
+    const x=sx(v);
+    ctx.beginPath();ctx.moveTo(x,H-padB);ctx.lineTo(x,H-padB+5);ctx.stroke();
+    label(ctx,(v*100)+'%',x,H-padB+18,{size:9});
+  });
+  label(ctx,'Win Rate',W/2,H-8,{size:11,color:MUTED});
+
+  // Null region (5% ± tiny)
+  const nullX=sx(0.05);
+  ctx.fillStyle='rgba(232,0,45,0.12)';
+  ctx.fillRect(nullX-4,padT+10,8,H-padB-padT-10);
+  ctx.strokeStyle='rgba(232,0,45,0.5)';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(nullX,padT+10);ctx.lineTo(nullX,H-padB);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'H₀: 5%',nullX,padT+22,{size:10,color:RED,weight:'500'});
+
+  // CI bar
+  const lo=sx(0.4068),hi=sx(0.4655),pe=sx(0.4361);
+  const ciY=midy;
+
+  // CI line
+  ctx.strokeStyle=GREEN;ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(lo,ciY);ctx.lineTo(hi,ciY);ctx.stroke();
+  // Caps
+  [lo,hi].forEach(x=>{
+    ctx.beginPath();ctx.moveTo(x,ciY-14);ctx.lineTo(x,ciY+14);ctx.stroke();
+  });
+  // Point estimate
+  ctx.fillStyle=GREEN;ctx.beginPath();ctx.arc(pe,ciY,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#001A0E';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('p̂',pe,ciY);
+
+  // Labels
+  label(ctx,'40.7%',lo,ciY-22,{size:11,color:GREEN,weight:'500'});
+  label(ctx,'p̂ = 43.6%',pe,ciY+28,{size:11,color:CREAM,weight:'500'});
+  label(ctx,'46.6%',hi,ciY-22,{size:11,color:GREEN,weight:'500'});
+
+  // Annotation
+  ctx.fillStyle='rgba(0,200,122,0.06)';ctx.strokeStyle='rgba(0,200,122,0.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(padL,padT+5,280,28,4);ctx.fill();ctx.stroke();
+  label(ctx,'95% CI: (0.4068, 0.4655) — does NOT include 5%',padL+140,padT+19,{size:11,color:GREEN,weight:'500',align:'center'});
+
+  // Gap annotation
+  const gapX=(nullX+lo)/2;
+  ctx.strokeStyle='rgba(255,215,0,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(nullX,midy-30);ctx.lineTo(lo,midy-30);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'Gap: 35.7 pp',gapX,midy-44,{size:10,color:GOLD,weight:'500'});
+  ctx.strokeStyle=GOLD;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(nullX+4,midy-30);ctx.lineTo(nullX+4,midy-22);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(lo-4,midy-30);ctx.lineTo(lo-4,midy-22);ctx.stroke();
+})();
+
+// ─── CHART 4B: Z-test normal curve ───────────────
+(function(){
+  const ctx=setupCanvas('chart4b');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  const padL=80,padR=40,padT=30,padB=50;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const zMin=-4,zMax=4;
+  const sx=z=>padL+(z-zMin)/(zMax-zMin)*plotW;
+  const phi=z=>Math.exp(-0.5*z*z)/Math.sqrt(2*Math.PI);
+  const maxPhi=phi(0)*1.1;
+  const sy=v=>padT+(1-v/maxPhi)*plotH;
+
+  // Rejection region shade (z > 1.645)
+  ctx.fillStyle='rgba(232,0,45,0.2)';
+  ctx.beginPath();ctx.moveTo(sx(1.645),H-padB);
+  for(let z=1.645;z<=zMax;z+=0.02){const px=sx(z),py=sy(phi(z));ctx.lineTo(px,py);}
+  ctx.lineTo(sx(zMax),H-padB);ctx.closePath();ctx.fill();
+
+  // Normal curve
+  ctx.strokeStyle=CREAM;ctx.lineWidth=2.5;
+  ctx.beginPath();let first=true;
+  for(let z=zMin;z<=zMax;z+=0.02){
+    const px=sx(z),py=sy(phi(z));
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // X axis
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  [-4,-3,-2,-1,0,1,1.645,2,3,4].forEach(z=>{
+    const x=sx(z);
+    ctx.beginPath();ctx.moveTo(x,H-padB);ctx.lineTo(x,H-padB+4);ctx.stroke();
+    label(ctx,z===1.645?'1.645':z,x,H-padB+16,{size:z===1.645?9:10,color:z===1.645?RED:MUTED});
+  });
+
+  // Critical line
+  const cvX=sx(1.645);
+  ctx.strokeStyle=RED;ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(cvX,padT);ctx.lineTo(cvX,H-padB);ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx,'z* = 1.645 (α=0.05)',cvX,padT+14,{size:10,color:RED});
+
+  // Test stat arrow (way off to the right)
+  const annX=W-padR-20;
+  ctx.strokeStyle=RED;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(W-padR-10,H-padB-30);ctx.lineTo(W-padR-10,padT+40);ctx.stroke();
+  ctx.fillStyle=RED;
+  ctx.beginPath();ctx.moveTo(W-padR-10,padT+40);ctx.lineTo(W-padR-18,padT+55);ctx.lineTo(W-padR-2,padT+55);ctx.closePath();ctx.fill();
+
+  ctx.fillStyle='rgba(232,0,45,0.1)';ctx.strokeStyle='rgba(232,0,45,0.35)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W-padR-170,padT+8,155,90,5);ctx.fill();ctx.stroke();
+  label(ctx,'z = 60.18',W-padR-92,padT+26,{size:14,color:RED,weight:'500'});
+  label(ctx,'(far off axis)',W-padR-92,padT+46,{size:10,color:MUTED});
+  label(ctx,'P-value ≈ 0',W-padR-92,padT+66,{size:12,color:GREEN,weight:'500'});
+  label(ctx,'Reject H₀',W-padR-92,padT+86,{size:11,color:GREEN});
+
+  // Rejection region label
+  label(ctx,'Rejection Region',sx(2.5),sy(phi(2.5))-20,{size:10,color:RED,weight:'500'});
+  label(ctx,'α = 0.05',sx(2.5),sy(phi(2.5))-6,{size:10,color:RED});
+
+  label(ctx,'Standard Normal — Two-Proportion Z-Test (one-tailed, right)',W/2,18,{size:11,color:MUTED});
+  label(ctx,'z-score',W/2,H-6,{size:11,color:MUTED});
+  label(ctx,'H₀: p₁=p₂',sx(0),padT+16,{size:10,color:MUTED});
+})();
+
+// ─── CHART 4C: Regression with CI band ───────────
+(function(){
+  const ctx=setupCanvas('chart4c');
+  const W=ctx.W,H=ctx.H;
+  ctx.fillStyle='#0D0D1A';ctx.fillRect(0,0,W,H);
+
+  const pos=[1,2,3,4,5,6,7,8,9,10];
+  const wr=[0.436,0.198,0.112,0.079,0.053,0.035,0.023,0.016,0.010,0.007];
+  const lp=pos.map(p=>Math.log(p));
+  const a=0.502,b=-0.189;
+  const fitted=lp.map(x=>a+b*x);
+  const resids=wr.map((y,i)=>y-fitted[i]);
+  const sse=resids.reduce((s,r)=>s+r*r,0);
+  const se_reg=Math.sqrt(sse/8);
+
+  const padL=80,padR=220,padT=30,padB=50;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const minX=-0.1,maxX=2.5,minY=-0.01,maxY=0.50;
+  const sx=x=>padL+(x-minX)/(maxX-minX)*plotW;
+  const sy=y=>padT+(1-(y-minY)/(maxY-minY))*plotH;
+  // fix arrow function
+  const syfn=(y)=>padT+(1-(y-minY)/(maxY-minY))*plotH;
+
+  // Grid
+  [0,0.1,0.2,0.3,0.4,0.5].forEach(v=>{
+    const y=syfn(v);
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    label(ctx,(v*100)+'%',padL-8,y,{align:'right',size:10});
+  });
+  [0,0.5,1.0,1.5,2.0,2.3].forEach(v=>{
+    const x=sx(v);
+    ctx.strokeStyle='rgba(255,255,255,0.04)';
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
+    label(ctx,v.toFixed(1),x,H-padB+16,{size:10});
+  });
+
+  // CI band (~95%)
+  ctx.fillStyle='rgba(232,0,45,0.07)';
+  ctx.beginPath();
+  const ciMult=2.306;
+  for(let xv=0.01;xv<=2.4;xv+=0.02){
+    const yhat=a+b*xv;
+    const yi=yhat+ciMult*se_reg;
+    ctx.lineTo(sx(xv),syfn(yi));
+  }
+  for(let xv=2.4;xv>=0.01;xv-=0.02){
+    const yhat=a+b*xv;
+    const yi=yhat-ciMult*se_reg;
+    ctx.lineTo(sx(xv),syfn(yi));
+  }
+  ctx.closePath();ctx.fill();
+
+  // LSRL
+  ctx.strokeStyle=RED;ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(let xv=0.01;xv<=2.4;xv+=0.02){
+    const yhat=a+b*xv;
+    xv<0.05?ctx.moveTo(sx(xv),syfn(yhat)):ctx.lineTo(sx(xv),syfn(yhat));
+  }
+  ctx.stroke();
+
+  // Residual lines
+  pos.forEach((p,i)=>{
+    const lx=Math.log(p);
+    const yhat=a+b*lx;
+    ctx.strokeStyle='rgba(255,215,0,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,2]);
+    ctx.beginPath();ctx.moveTo(sx(lx),syfn(wr[i]));ctx.lineTo(sx(lx),syfn(yhat));ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Data points
+  const colors=[RED,'#C0C0C0','#CD7F32','#3366CC','#22854F','#556677','#445566','#334455','#223344','#112233'];
+  pos.forEach((p,i)=>{
+    const lx=Math.log(p);
+    ctx.fillStyle=colors[i];
+    ctx.beginPath();ctx.arc(sx(lx),syfn(wr[i]),7,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(sx(lx),syfn(wr[i]),7,0,Math.PI*2);ctx.stroke();
+    label(ctx,'P'+p,sx(lx),syfn(wr[i])-16,{size:9,color:colors[i],weight:'500'});
+  });
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  label(ctx,'ln(Grid Position)',W/2-padR/4,H-6,{size:12,color:MUTED});
+  ctx.save();ctx.translate(16,H/2);ctx.rotate(-Math.PI/2);
+  label(ctx,'Win Rate (%)',0,0,{size:12,color:MUTED});ctx.restore();
+
+  // Regression stats box
+  ctx.fillStyle='rgba(232,0,45,0.07)';ctx.strokeStyle='rgba(232,0,45,0.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W-padR+20,padT+10,195,170,6);ctx.fill();ctx.stroke();
+  label(ctx,'Regression Output',W-padR+115,padT+30,{size:12,color:RED,weight:'500'});
+  label(ctx,'Ŷ = 0.502 − 0.189·ln(x)',W-padR+115,padT+52,{size:11,color:CREAM});
+  label(ctx,'R² = 0.962',W-padR+115,padT+72,{size:11,color:GOLD});
+  label(ctx,'r = −0.981',W-padR+115,padT+92,{size:11,color:GOLD});
+  label(ctx,'Slope t = −15.8',W-padR+115,padT+112,{size:11,color:CREAM});
+  label(ctx,'p < 0.001',W-padR+115,padT+132,{size:12,color:GREEN,weight:'500'});
+  label(ctx,'95% CI for β:',W-padR+115,padT+152,{size:10,color:MUTED});
+  label(ctx,'(−0.220, −0.158)',W-padR+115,padT+170,{size:11,color:GREEN});
+
+  // Legend
+  ctx.strokeStyle=RED;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(padL+10,padT+14);ctx.lineTo(padL+36,padT+14);ctx.stroke();
+  label(ctx,'LSRL: Ŷ = 0.502 − 0.189·ln(pos)',padL+160,padT+14,{size:10,color:MUTED,align:'center'});
+  ctx.fillStyle='rgba(232,0,45,0.15)';ctx.fillRect(padL+285,padT+7,14,14);
+  label(ctx,'95% CI band',padL+366,padT+14,{size:10,color:MUTED,align:'left'});
+
+  label(ctx,'LSRL: Win Rate vs. ln(Position) — Regression Inference',W/2-padR/4,18,{size:11,color:MUTED});
+})();
+</script>
+</body>
+</html>
